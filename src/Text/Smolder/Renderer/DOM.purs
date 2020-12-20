@@ -58,6 +58,7 @@ instance foldableAList :: Foldable AList where
 
 setAttr :: Element → Attr → Effect Unit
 setAttr n (Attr k v) = setAttribute k v n
+setAttr n (SafeAttr k v) = setAttribute k v n
 
 setAttributes :: Element → CatList Attr → Effect Unit
 setAttributes n = traverse_ (setAttr n)
@@ -94,6 +95,7 @@ renderNode p (Content text rest) = do
   textNode ← makeText text
   _ ← appendChild (Text.toNode textNode) (Element.toNode p)
   pure rest
+renderNode p (Doctype _ rest) = pure rest
 renderNode p (Empty rest) = pure rest
 
 
@@ -179,9 +181,13 @@ walk parent ref (Element ns name children attrs events rest) = pop ref >>= \node
         void $ replaceChild (Element.toNode el) node parent
     pure rest
 
+walk parent ref (Doctype _ rest) =
+  pure rest
+
 patchAttrs :: Element → CatList Attr → Effect Unit
 patchAttrs node attrs = patchAttributes node (fromFoldable (map toTuple attrs))
   where toTuple (Attr key value) = Tuple key value
+        toTuple (SafeAttr key value) = Tuple key value
 
 patchEvents :: Element → CatList (EventHandler EventListener) → Effect Unit
 patchEvents node events = patchEventListeners node (fromFoldable (map toTuple events))
